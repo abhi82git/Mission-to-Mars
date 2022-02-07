@@ -19,6 +19,7 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
+        "mars_hemispheres": mars_hemispheres(browser),
         "last_modified": dt.datetime.now()
     }
 
@@ -83,19 +84,52 @@ def featured_image(browser):
 
 def mars_facts():
     # Add try/except for error handling
-    #try:
-    # Use 'read_html' to scrape the facts table into a dataframe
-    df = pd.read_html('https://data-class-mars-facts.s3.amazonaws.com/Mars_Facts/index.html')[0]
+    try:
+        # Use 'read_html' to scrape the facts table into a dataframe
+        df = pd.read_html("https://galaxyfacts-mars.com")[0]
 
-    #except BaseException:
-        #return None
+    except BaseException:
+        return None
 
     # Assign columns and set index of dataframe
     df.columns = ['Description', 'Mars', 'Earth']
     df.set_index('Description', inplace=True)
 
     # Convert dataframe into HTML format, add bootstrap
-    return df.to_html(classes="table table-striped")
+    return df.to_html()
+
+def mars_hemispheres(browser):
+    # Use browser to visit the URL
+    url = 'https://marshemispheres.com/'
+    browser.visit(url)
+
+    # 2. Create a list to hold the images and titles.
+    hemisphere_image_urls = []
+    mars_home_page_url = 'https://marshemispheres.com'
+
+    # 3. Write code to retrieve the image urls and titles for each hemisphere.
+    html = browser.html
+    hemi_soup = soup(html, 'html.parser')
+    hemi_box = hemi_soup.find_all('div', class_='description')
+
+    try:
+        for hemi in hemi_box:
+            link_text = hemi.find('h3')
+            img_page = browser.find_by_text(link_text.text)
+            img_page.click()
+            img_html = browser.html
+            img_soup = soup(img_html, 'html.parser')
+            img_rel_url = img_soup.find('li').find('a').get('href')
+            img_full_url = f'{mars_home_page_url}/{img_rel_url}'
+            title = img_soup.find('h2', class_='title').get_text()
+            hemi_dict = {'img_url': img_full_url, 'title': title}
+            hemisphere_image_urls.append(hemi_dict)
+            browser.back()
+
+    except BaseException:
+        return None
+
+    return hemisphere_image_urls
 
 if __name__ == "__main__":
 
